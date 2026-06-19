@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALOOSH TRADE — منصة الباك تست وتدريب التداول</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* التنسيقات الخاصة بالواجهة الفخمة لموقعك */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0A0E16;
+            color: #FFFFFF;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #11161F;
+            border: 1px solid #161D29;
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .logo-area {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFC107;
+            margin-bottom: 5px;
+        }
+        .logo-sub {
+            font-size: 14px;
+            color: #8A94A6;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #A0AEC0;
+            font-size: 14px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #2D3748;
+            background-color: #1A202C;
+            color: white;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        input:focus {
+            border-color: #FFC107;
+            outline: none;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background-color: #FFC107;
+            color: #0A0E16;
+        }
+        .btn-primary:hover {
+            background-color: #E0A800;
+        }
+        .btn-secondary {
+            background-color: transparent;
+            color: #A0AEC0;
+            border: 1px solid #2D3748;
+        }
+        .btn-secondary:hover {
+            background-color: #1A202C;
+            color: white;
+        }
+        .switch-text {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #A0AEC0;
+        }
+        .switch-link {
+            color: #FFC107;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        /* لوحة التحكم الافتراضية بعد الدخول */
+        .dashboard {
+            display: none;
+            background-color: #11161F;
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="authContainer">
+        <div class="logo-area">ALOOSH TRADE 📊</div>
+        <div class="logo-sub" id="authTitle">تسجيل الدخول إلى المنصة</div>
+
+        <div class="form-group">
+            <label>البريد الإلكتروني</label>
+            <input type="email" id="emailInput" placeholder="name@example.com">
+        </div>
+
+        <div class="form-group">
+            <label>كلمة المرور</label>
+            <input type="password" id="passwordInput" placeholder="••••••••">
+        </div>
+
+        <button class="btn-primary" id="mainSubmitBtn" onclick="handleAuthSubmit()">تسجيل الدخول</button>
+        
+        <div class="switch-text" id="switchBox">
+            ليس لديك حساب؟ <span class="switch-link" onclick="toggleAuthMode(true)">إنشاء حساب جديد</span>
+        </div>
+    </div>
+
+    <div class="dashboard" id="dashboardContainer">
+        <div class="logo-area" style="font-size: 32px;">ALOOSH TRADE</div>
+        <p style="color: #4CDF93;">✨ تم تسجيل الدخول بنجاح عبر قاعدة البيانات الحقيقية ✨</p>
+        <hr style="border-color: #2D3748; margin: 20px 0;">
+        <h3>مرحباً بك في منصة الباك تست التجريبية</h3>
+        <p>جاري تحميل البيانات الحية لزوج الذهب مقابل الدولار XAUUSD...</p>
+        <button class="btn-secondary" style="max-width: 150px;" onclick="handleSignOut()">تسجيل الخروج</button>
+    </div>
+
+    <script>
+        // --- إعدادات الربط بقاعدة بيانات SUPABASE ---
+        // تم ربط رابط مشروعك الجديد تلقائياً هنا
+        const SUPABASE_URL = "https://jstniyjgujxqqdpojoxe.supabase.co"; 
+        
+        // ⚠️ ضع هنا مفتاح الـ anon_key الطويل الخاص بمشروعك الجديد المأخوذ من إعدادات الموقع بين علامتي التنصيص ""
+        const SUPABASE_ANON_KEY = "sb_publishable_yFTK2fpQF38p0Ba4u2IMFQ_jWacSWkQ"; 
+
+        // إنشاء اتصال حقيقي بقاعدة البيانات باستخدام المكتبة الرسمية
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // متغير لتحديد الوضع الحالي (false = تسجيل دخول ، true = إنشاء حساب)
+        let isSignUpMode = false;
+
+        // دالة للتبديل بين واجهتي الدخول والتسجيل
+        function toggleAuthMode(signUpMode) {
+            isSignUpMode = signUpMode;
+            const authTitle = document.getElementById('authTitle');
+            const mainSubmitBtn = document.getElementById('mainSubmitBtn');
+            const switchBox = document.getElementById('switchBox');
+
+            if (isSignUpMode) {
+                authTitle.innerText = "إنشاء حساب تداول جديد";
+                mainSubmitBtn.innerText = "إنشاء حساب";
+                switchBox.innerHTML = 'لديك حساب بالفعل؟ <span class="switch-link" onclick="toggleAuthMode(false)">تسجيل الدخول</span>';
+            } else {
+                authTitle.innerText = "تسجيل الدخول إلى المنصة";
+                mainSubmitBtn.innerText = "تسجيل الدخول";
+                switchBox.innerHTML = 'ليس لديك حساب؟ <span class="switch-link" onclick="toggleAuthMode(true)">إنشاء حساب جديد</span>';
+            }
+        }
+
+        // الدالة الرئيسية عند الضغط على الزر
+        async function handleAuthSubmit() {
+            const email = document.getElementById('emailInput').value.trim();
+            const password = document.getElementById('passwordInput').value;
+
+            if (!email || !password) {
+                alert("الرجاء إدخال البريد الإلكتروني وكلمة المرور!");
+                return;
+            }
+
+            if (isSignUpMode) {
+                // عمل حساب حقيقي جديد في السيرفر
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) {
+                    alert("خطأ أثناء إنشاء الحساب: " + error.message);
+                } else {
+                    alert("تم إنشاء حسابك بنجاح! يرجى فحص بريدك الإلكتروني لتأكيده وتفعيله قبل الدخول.");
+                }
+            } else {
+                // تسجيل دخول حقيقي والتحقق من كلمة المرور
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    alert("فشل تسجيل الدخول: " + error.message);
+                } else {
+                    alert("مرحباً بك! تم التحقق من البيانات.");
+                    showDashboard(true);
+                }
+            }
+        }
+
+        // دالة لتغيير واجهة الموقع بعد تسجيل الدخول
+        function showDashboard(loggedIn) {
+            if (loggedIn) {
+                document.getElementById('authContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+            } else {
+                document.getElementById('authContainer').style.display = 'block';
+                document.getElementById('dashboardContainer').style.display = 'none';
+            }
+        }
+
+        // دالة تسجيل الخروج وإنهاء الجلسة
+        async function handleSignOut() {
+            await supabaseClient.auth.signOut();
+            showDashboard(false);
+        }
+
+        // فحص تلقائي عند فتح الصفحة: لو كان المستخدم مسجل دخول مسبقاً، يفتح لوحة التحكم فوراً
+        async function checkUserSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                showDashboard(true);
+            }
+        }
+        checkUserSession();
+    </script>
+</body>
+</html>
